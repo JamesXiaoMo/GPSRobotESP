@@ -1,5 +1,13 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <FastLED.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+
+#define SERVICE_UUID        "204a2353-1b42-4aee-ba54-140ba9f4cde9"
+#define CHARACTERISTIC_UUID "98303f4b-96ae-4b27-869d-19ac4443c63f"
+
+CRGB leds[1];
 
 int dc_motor_speed = 0;
 int stepping_motor_speed = 0;
@@ -11,6 +19,12 @@ WiFiServer server(7769);
 
 void setup() {
   Serial.begin(115200);
+
+  FastLED.addLeds<WS2812, 8, GRB>(leds, 1);
+  FastLED.setBrightness(100);
+  leds[0] = CRGB::Red;
+  FastLED.show();
+
   WiFi.begin(ssid, pwd);
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -18,6 +32,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\nConnected to Wi-Fi");
+  leds[0] = CRGB::Yellow;
+  FastLED.show();
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
@@ -29,7 +45,9 @@ void setup() {
 void loop() {
   WiFiClient client = server.available();
   if (client) {
-    Serial.println("New client connected");
+    leds[0] = CRGB::Green;
+    FastLED.show();
+    Serial.println("New client connected " + client.remoteIP().toString() + ":" + client.remotePort());
     while (client.connected()) {
       if (client.available()) {
         String data = client.readStringUntil('\n');  // 读取一行数据
@@ -42,5 +60,8 @@ void loop() {
         }
       }
     }
+  }else{
+    leds[0] = CRGB::Orange;
+    FastLED.show();
   }
 }
