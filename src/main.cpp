@@ -17,7 +17,6 @@ bool deviceConnected = false;
 
 bool isGetWiFiData = false;
 std::string WIFIDATA;
-const unsigned long connectTimeout = 10000;
 
 CRGB leds[1];
 
@@ -25,7 +24,6 @@ WiFiServer server(7769);
 
 void WiFiConnect()
 {
-  Serial.println(WIFIDATA.c_str());
   isGetWiFiData = false;
   std::string SSID, PWD;
   size_t delimiterPos = WIFIDATA.find('|');
@@ -43,14 +41,13 @@ void WiFiConnect()
   Serial.println(SSID.c_str());
   Serial.print("Password: ");
   Serial.println(PWD.c_str());
-
+  WiFi.begin(SSID.c_str(), PWD.c_str());
   // 开始连接 Wi-Fi
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < CONNECT_TIMEOUT)
   {
-    WiFi.begin(SSID.c_str(), PWD.c_str());
     delay(1000);
-    Serial.print("Connecting to Wi-Fi...");
+    Serial.print("Connecting to Wi-Fi");
     Serial.print(".");
   }
 
@@ -124,7 +121,7 @@ void setup()
   pCharacteristic = pService->createCharacteristic(
       CHARACTERISTIC_UUID,
       BLECharacteristic::PROPERTY_READ |
-          BLECharacteristic::PROPERTY_WRITE);
+      BLECharacteristic::PROPERTY_WRITE);
   // 设置回调
   pCharacteristic->setCallbacks(new MyCallbacks());
 
@@ -137,6 +134,10 @@ void setup()
   // 开启广播
   pServer->getAdvertising()->start();
   Serial.println("BLE is ready to receive data");
+
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->start();
 
   FastLED.addLeds<WS2812, 48, GRB>(leds, 1);
   FastLED.setBrightness(100);
@@ -157,15 +158,16 @@ void loop()
     while (WiFi.status() == WL_CONNECTED)
     {
       WiFiClient client = server.available();
+      
       if (client)
       {
+        client.setNoDelay(true);
         Serial.println("New client connected");
         while (client.connected())
         {
           if (client.available())
           {
-            String data = client.readStringUntil('\n'); // 读取一行数据
-            // Serial.println("<<< " + data);
+            String data = client.readStringUntil('\n');
             if (data == "Connect")
             {
               client.println("ConnectOK");
@@ -176,6 +178,10 @@ void loop()
             else if (data == "RSSI")
             {
               client.println("+" + String(WiFi.RSSI()));
+            }
+            else if (data.charAt(0) == '@')
+            {
+              Serial.println(data);
             }
           }
         }
