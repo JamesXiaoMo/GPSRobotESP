@@ -1,6 +1,6 @@
 # 🤖GPS Robot Project Microcontroller
 
-<div align="center"><a href="https://github.com/JamesXiaoMo/GPSRobotProject/blob/master"><img src="/assets/images/icon.png" height="256" border="0"></a></div>
+<div align="center"><a href="https://github.com/JamesXiaoMo/GPSRobotProject/blob/master"><img src="https://github.com/JamesXiaoMo/GPSRobotProject/blob/master/assets/images/icon.png" height="256" border="0"></a></div>
 
 ## 📖紹介
 Heathkit社が発売したHERO1ロボットを改造し、最新のGPS技術を搭載したロボットへとアップグレードします。
