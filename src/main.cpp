@@ -23,6 +23,10 @@ WiFiServer server(7769);
 // -------------------------------------------------------
 
 // --------------------- 以下全局函数 ---------------------
+void TCPTask(void *pvParameters);
+
+void BLETask(void *pvParameters);
+
 void WiFiConnect(){
   isGetWiFiData = false;
   std::string SSID, PWD;
@@ -94,15 +98,9 @@ class MyServerCallbacks : public BLEServerCallbacks{
   }
 };
 // -------------------------------------------------------
-
-void setup(){
-  Serial.begin(115200);
-  // 初始化WS2812
-  FastLED.addLeds<WS2812, 48, GRB>(leds, 1);
-  FastLED.setBrightness(100);
-  leds[0] = CRGB::Red;
-  FastLED.show();
-  // 初始化BLE
+ // 初始化BLE
+void BLETask(void *pvParameters){
+  Serial.println("BLE Task running on core " + String(xPortGetCoreID()));
   BLEDevice::init("ESP32S3_BLE");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -119,51 +117,88 @@ void setup(){
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->start();
+  vTaskDelete(NULL);
 }
 
-void loop(){
-  if (isGetWiFiData){
+void TCPTask(void *pvParameters){
+  Serial.println("WiFi Task running on core " + String(xPortGetCoreID()));
+  while (true){
+    if (isGetWiFiData){
     WiFiConnect();
-  }
-  while (WiFi.status() == WL_CONNECTED){
-    WiFiClient client = server.available();
-    if (client){
-      client.setNoDelay(true);
-      Serial.println("New client connected");
-      while (client.connected()){
-        if (client.available()){
-          String data = client.readStringUntil('\n');
-          if (data == "Connect"){
-            client.println("ConnectOK");
-            leds[0] = CRGB::Green;
-            FastLED.show();
-          }else if (data == "RSSI"){
-            client.println("+" + String(WiFi.RSSI()));
-          }else if (data.charAt(0) == '@'){
-            size_t numOfPos = 2;
-            int pos[numOfPos] = {-1, -1};
-            for (int i = 0; i < data.length(); i++){
-              if (data.charAt(i) == '|'){
-                for (int j = 0; j < numOfPos; j++){
-                  if (pos[j] == -1){
-                    pos[j] = i;
-                    break;
+    }
+    while (WiFi.status() == WL_CONNECTED){
+      WiFiClient client = server.available();
+      if (client){
+        client.setNoDelay(true);
+        Serial.println("New client connected");
+        while (client.connected()){
+          if (client.available()){
+            String data = client.readStringUntil('\n');
+            if (data == "Connect"){
+              client.println("ConnectOK");
+              leds[0] = CRGB::Green;
+              FastLED.show();
+            }else if (data == "RSSI"){
+              client.println("+" + String(WiFi.RSSI()));
+            }else if (data.charAt(0) == '@'){
+              size_t numOfPos = 2;
+              int pos[numOfPos] = {-1, -1};
+              for (int i = 0; i < data.length(); i++){
+                if (data.charAt(i) == '|'){
+                  for (int j = 0; j < numOfPos; j++){
+                    if (pos[j] == -1){
+                      pos[j] = i;
+                      break;
+                    }
                   }
                 }
               }
+              DCMOTOR_SPEED = data.substring(1, pos[0]).toInt();
+              StepperMotor_SPEED = data.substring(pos[0] + 1, pos[1]).toInt();
+              Serial.println("DCMOTOR_SPEED: " + String(DCMOTOR_SPEED));
+              Serial.println("StepperMotor_SPEED: " + String(StepperMotor_SPEED));
             }
-            DCMOTOR_SPEED = data.substring(1, pos[0]).toInt();
-            StepperMotor_SPEED = data.substring(pos[0] + 1, pos[1]).toInt();
-            Serial.println("DCMOTOR_SPEED: " + String(DCMOTOR_SPEED));
-            Serial.println("StepperMotor_SPEED: " + String(StepperMotor_SPEED));
           }
         }
+      }else{
+        leds[0] = CRGB::Yellow;
+        FastLED.show();
       }
-    }else{
-      leds[0] = CRGB::Yellow;
-      FastLED.show();
     }
+    Serial.println("Waiting for WiFi connection...");
+    delay(1000);
   }
-  Serial.println("Waiting for WiFi connection...");
+}
+
+void setup(){
+  Serial.begin(115200);
+  // 初始化WS2812
+  FastLED.addLeds<WS2812, 48, GRB>(leds, 1);
+  FastLED.setBrightness(100);
+  leds[0] = CRGB::Red;
+  FastLED.show();
+
+  xTaskCreatePinnedToCore(
+    BLETask,
+    "BLETask",
+    4096,
+    NULL,
+    1,
+    NULL,
+    0
+  );
+
+  xTaskCreatePinnedToCore(
+    TCPTask,
+    "TCPTask",
+    8192,
+    NULL,
+    1,
+    NULL,
+    1
+  );
+}
+
+void loop(){
   delay(1000);
 }
