@@ -47,7 +47,7 @@ void WiFiConnect(){
   // 连接 Wi-Fi
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED && (millis() - startTime) < CONNECT_WIFI_TIMEOUT){
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.print("Connecting to Wi-Fi");
     Serial.print(".");
   }
@@ -100,7 +100,6 @@ class MyServerCallbacks : public BLEServerCallbacks{
 // -------------------------------------------------------
  // 初始化BLE
 void BLETask(void *pvParameters){
-  Serial.println("BLE Task running on core " + String(xPortGetCoreID()));
   BLEDevice::init("ESP32S3_BLE");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -121,7 +120,6 @@ void BLETask(void *pvParameters){
 }
 
 void TCPTask(void *pvParameters){
-  Serial.println("WiFi Task running on core " + String(xPortGetCoreID()));
   while (true){
     if (isGetWiFiData){
     WiFiConnect();
@@ -166,7 +164,7 @@ void TCPTask(void *pvParameters){
       }
     }
     Serial.println("Waiting for WiFi connection...");
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
