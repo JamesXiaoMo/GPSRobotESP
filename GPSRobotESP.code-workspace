@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"name": "GPSRobotESP",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"lv_log.h": "c",
+			"lv_conf_internal.h": "c"
+		},
+		"liveServer.settings.multiRootWorkspaceName": "web"
+	}
+}
