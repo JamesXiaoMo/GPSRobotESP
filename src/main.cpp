@@ -183,7 +183,7 @@ void setup(){
     NULL,
     1,
     NULL,
-    0
+    0 //Core 0
   );
 
   xTaskCreatePinnedToCore(
@@ -193,7 +193,7 @@ void setup(){
     NULL,
     1,
     NULL,
-    1
+    1 //Core 1
   );
 }
 
